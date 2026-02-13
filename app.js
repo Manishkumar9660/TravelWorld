@@ -53,7 +53,7 @@ const store = MongoStore.create({
     secret: process.env.SECRET,
   },
   touchAfter: 24 * 3600,
-})
+});
 store.on("error", (err)=>{
   console.log("session store error", err);
 })
