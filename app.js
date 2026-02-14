@@ -22,9 +22,6 @@ const userRouter = require("./routes/user.js");
 
 
 
-
-const dburl= process.env.ATLASDB_URL;
-
 main()
   .then(() => {
     console.log("connected to DB");
@@ -43,12 +40,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride("_method"));
 app.engine("ejs", ejsMate);
 app.use(express.static(path.join(__dirname, "public")));
-app.get("/", (req, res) => {
-  res.send("Hi, I am root");
+app.get("/", (req, res)=>{
+  res.redirect("/listings");
 });
 
 const store = MongoStore.create({
-  mongoUrl: dburl,
+ mongoUrl: process.env.ATLASDB_URL,
   crypto: {
     secret: process.env.SECRET,
   },
@@ -65,11 +62,12 @@ const sessionOptions= {
   cookie:{
     expires: Date.now()+7 *24 *60*60*1000,
     maxAge:7 *24 *60*60*1000,
+    httpOnly: true,
   },
 };
 
 
-app.use(session(sessionOptions));
+app.use(require("express-session")(sessionOptions));
 app.use(flash());
 
 app.use(passport.initialize());
@@ -107,10 +105,10 @@ app.use((req, res, next) => {
   next(new ExpressError(404, "Page not found"));
 });
 app.use((err, req, res, next) => {
-  let { statusCode = 500, message = "Something went wrong" } = err;
-  res.status(statusCode).send(message);
-  
+    let { statusCode = 500, message = "Something went wrong" } = err;
+    res.status(statusCode).render("error.ejs", { err });
 });
+
 app.listen(8080, () => {
   console.log("server is listening to port 8080");
 });
