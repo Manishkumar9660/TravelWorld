@@ -21,7 +21,7 @@ const reviewsRouter = require("./routes/review.js");
 const userRouter = require("./routes/user.js");
 
 
-
+const dburl = process.env.ATLASDB_URL;
 main()
   .then(() => {
     console.log("connected to DB");
@@ -45,7 +45,7 @@ app.get("/", (req, res)=>{
 });
 
 const store = MongoStore.create({
- mongoUrl: process.env.ATLASDB_URL,
+ mongoUrl: dburl,
   crypto: {
     secret: process.env.SECRET,
   },
@@ -63,6 +63,7 @@ const sessionOptions= {
     expires: Date.now()+7 *24 *60*60*1000,
     maxAge:7 *24 *60*60*1000,
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
   },
 };
 
