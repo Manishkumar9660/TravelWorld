@@ -1,68 +1,107 @@
-const Listing= require("../models/listing");
+const Listing = require("../models/listing");
 
-module.exports.index= async (req, res) => {
+// INDEX
+module.exports.index = async (req, res) => {
   const allListings = await Listing.find({});
-  res.render("listings/index.ejs", { allListings });
+  return res.render("listings/index.ejs", { allListings });
 };
-module.exports.renderNewForm= (req, res) => {
-  
-  res.render("listings/new.ejs");
-}
+
+// NEW FORM
+module.exports.renderNewForm = (req, res) => {
+  return res.render("listings/new.ejs");
+};
+
+// SHOW LISTING
 module.exports.showListing = async (req, res) => {
-  let { id } = req.params;
-  const listing = await Listing.findById(req.params.id).populate({path:"reviews", populate:{path: "author"}}).populate("owner");
+  const { id } = req.params;
+
+  const listing = await Listing.findById(id)
+    .populate({ path: "reviews", populate: { path: "author" } })
+    .populate("owner");
+
+  // if listing deleted or wrong id
   if (!listing) {
     req.flash("error", "Cannot find that listing!");
     return res.redirect("/listings");
   }
-  console.log(listing);
-  res.render("listings/show.ejs", { listing });
+
+  return res.render("listings/show.ejs", { listing });
 };
+
+// CREATE LISTING
 module.exports.createListing = async (req, res) => {
+  const newListing = new Listing(req.body.listing);
 
-    const newListing = new Listing(req.body.listing);
+  // owner
+  newListing.owner = req.user._id;
 
-    // set owner
-    newListing.owner = req.user._id;
+  // cloudinary image
+  if (req.file) {
+    newListing.image = {
+      url: req.file.path,
+      filename: req.file.filename,
+    };
+  }
 
-    // set image from cloudinary
-    if (req.file) {
-        newListing.image = {
-            url: req.file.path,
-            filename: req.file.filename
-        };
-    }
+  await newListing.save();
 
-    await newListing.save();
-
-    req.flash("success", "New listing created!");
-    res.redirect("/listings");
+  req.flash("success", "New listing created!");
+  return res.redirect("/listings");
 };
+
+// EDIT FORM
 module.exports.renderEditForm = async (req, res) => {
-  let { id } = req.params;
+  const { id } = req.params;
+
   const listing = await Listing.findById(id);
+
   if (!listing) {
     req.flash("error", "Cannot find that listing!");
     return res.redirect("/listings");
   }
-  res.render("listings/edit.ejs", { listing });
-}
-module.exports.updateListing = async(req, res) => {
-   let {id} =req.params;
-  let listing =await Listing.findByIdAndUpdate(id, { ...req.body.listing });
-  if(req.file){
-  let url= req.file.path;
-  let filename=req.file.filename;
-  listing.image= {url, filename};
-  await listing.save();
+
+  return res.render("listings/edit.ejs", { listing });
+};
+
+// UPDATE LISTING
+module.exports.updateListing = async (req, res) => {
+  const { id } = req.params;
+
+  const listing = await Listing.findByIdAndUpdate(
+    id,
+    { ...req.body.listing },
+    { new: true, runValidators: true }
+  );
+
+  if (!listing) {
+    req.flash("error", "Listing not found!");
+    return res.redirect("/listings");
   }
-    req.flash("success", "New listing updated!");
-  res.redirect(`/listings/${id}`);
-}
+
+  // if new image uploaded
+  if (req.file) {
+    listing.image = {
+      url: req.file.path,
+      filename: req.file.filename,
+    };
+    await listing.save();
+  }
+
+  req.flash("success", "Listing updated!");
+  return res.redirect(`/listings/${id}`);
+};
+
+// DELETE LISTING
 module.exports.destroyListing = async (req, res) => {
-  let { id } = req.params;
-  let deletedListing = await Listing.findByIdAndDelete(id);
-  console.log(deletedListing);
-    req.flash("success", "listing deleted!");
-  res.redirect("/listings");
-}
+  const { id } = req.params;
+
+  const deletedListing = await Listing.findByIdAndDelete(id);
+
+  if (!deletedListing) {
+    req.flash("error", "Listing already deleted!");
+    return res.redirect("/listings");
+  }
+
+  req.flash("success", "Listing deleted!");
+  return res.redirect("/listings");
+};
