@@ -3,6 +3,7 @@ if(process.env.NODE_ENV!="production"){
 }
 const express=require("express");
 const app=express();
+app.set("trust proxy", 1);
 const mongoose=require("mongoose");
 const path = require("path");
 const methodOverride = require("method-override");
@@ -29,7 +30,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "/public")));
 
-// const Mongo_Url="mongodb://127.0.0.1:27017/wanderlust";
+
 const dbURL=process.env.ATLASDB_URL;
 main().then(()=>{
     console.log("MongoDB connected successfully");
@@ -67,7 +68,7 @@ const sessionOptions={
 
 
 
-app.set("trust proxy", 1);
+
 app.use(session(sessionOptions));
 app.use(flash());
 
@@ -107,6 +108,14 @@ app.use((err, req, res, next) => {
 });
 
 //Listen
-app.listen(port,()=>{
-    console.log(`Sever is listening on port: ${port}`);
+mongoose.connect(dbURL)
+.then(() => {
+    console.log("MongoDB connected successfully");
+
+    app.listen(port, () => {
+        console.log(`Server is listening on port: ${port}`);
+    });
 })
+.catch(err => {
+    console.log("MongoDB connection error:", err);
+});
